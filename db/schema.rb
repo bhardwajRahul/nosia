@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_07_08_121413) do
+ActiveRecord::Schema[8.0].define(version: 2026_08_21_121000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "vector"
@@ -111,11 +111,12 @@ ActiveRecord::Schema[8.0].define(version: 2026_07_08_121413) do
   create_table "api_tokens", force: :cascade do |t|
     t.bigint "user_id", null: false
     t.string "name"
-    t.string "token"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.bigint "account_id", null: false
+    t.string "token_digest"
     t.index ["account_id"], name: "index_api_tokens_on_account_id"
+    t.index ["token_digest"], name: "index_api_tokens_on_token_digest", unique: true
     t.index ["user_id"], name: "index_api_tokens_on_user_id"
   end
 
@@ -150,6 +151,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_07_08_121413) do
     t.boolean "generating", default: false, null: false
     t.integer "input_tokens_count", default: 0, null: false
     t.integer "output_tokens_count", default: 0, null: false
+    t.string "thinking_phase"
     t.index ["account_id"], name: "index_chats_on_account_id"
     t.index ["chat_id"], name: "index_chats_on_chat_id"
     t.index ["model_id"], name: "index_chats_on_model_id"
