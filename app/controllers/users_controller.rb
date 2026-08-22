@@ -1,7 +1,14 @@
 # frozen_string_literal: true
 
 class UsersController < ApplicationController
+  RATE_LIMIT_STORE = ActiveSupport::Cache::MemoryStore.new
+
   allow_unauthenticated_access only: %i[ new create ]
+  # Declared before the registrations gate so spam counts even while
+  # registration is closed — a redirecting before_action halts the chain.
+  rate_limit to: 5, within: 1.minute, by: -> { request.remote_ip },
+    store: RATE_LIMIT_STORE,
+    with: -> { redirect_to root_path, alert: "Try again later." }
   before_action :check_allowed_registrations
 
   def new
