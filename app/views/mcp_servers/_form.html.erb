@@ -116,29 +116,3 @@
     </div>
   </div>
 <% end %>
-
-<script>
-  document.addEventListener('turbo:load', () => {
-    const form = document.querySelector('[data-controller="mcp-form"]')
-    if (!form) return
-
-    const transportTypeSelect = form.querySelector('select[name*="transport_type"]')
-    const httpFields = form.querySelector('[data-mcp-form-target="httpFields"]')
-    const stdioFields = form.querySelector('[data-mcp-form-target="stdioFields"]')
-
-    function toggleFields() {
-      const type = transportTypeSelect.value
-
-      if (type === 'stdio') {
-        httpFields.classList.add('hidden')
-        stdioFields.classList.remove('hidden')
-      } else {
-        httpFields.classList.remove('hidden')
-        stdioFields.classList.add('hidden')
-      }
-    }
-
-    transportTypeSelect.addEventListener('change', toggleFields)
-    toggleFields()
-  })
-</script>

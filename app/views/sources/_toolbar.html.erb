@@ -5,14 +5,14 @@
     <%= f.hidden_field :status, value: status %>
     <%= f.search_field :q, value: query, placeholder: "Search sources…", class: "w-full n-field" %>
   <% end %>
-  <%# No Stimulus controller here — the inline onchange submits the form. %>
-  <%= form_with url: sources_path, method: :get do |f| %>
+  <%= form_with url: sources_path, method: :get,
+        data: { controller: "auto-submit", action: "change->auto-submit#submit" } do |f| %>
     <%= f.hidden_field :type, value: type %>
     <%= f.hidden_field :status, value: status %>
     <%= f.hidden_field :q, value: query %>
     <%= f.select :sort,
         options_for_select([["Recently added", "recent"], ["Title", "title"], ["Status", "status"], ["Chunk count", "chunks"]], sort),
-        {}, class: "n-select", onchange: "this.form.requestSubmit()" %>
+        {}, class: "n-select" %>
   <% end %>
   <%= render "sources/add_menu" %>
 </div>
