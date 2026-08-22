@@ -5,6 +5,7 @@ module Accounts
     before_action :set_account
     before_action :set_user, only: %i[create]
     before_action :set_account_user, only: %i[destroy]
+    before_action :require_owner
 
     def index
       @account_users = @account.account_users.includes(:user)
@@ -22,15 +23,22 @@ module Accounts
     end
 
     def destroy
-      @account_user.destroy
+      if @account_user.user_id == @account.owner_id
+        redirect_to account_account_users_path(@account), alert: "The account owner cannot be removed."
+      else
+        @account_user.destroy!
 
-      redirect_to account_account_users_path(@account), notice: "User was successfully removed."
+        redirect_to account_account_users_path(@account), notice: "User was successfully removed."
+      end
     end
 
     private
 
-    def account_user_params
-      params.require(:account_user).permit(:user_id)
+    # Membership is the account's trust boundary: only the owner manages it.
+    def require_owner
+      return if @account.owner_id == Current.user.id
+
+      redirect_to account_account_users_path(@account), alert: "Only the account owner can manage members."
     end
 
     def set_account
