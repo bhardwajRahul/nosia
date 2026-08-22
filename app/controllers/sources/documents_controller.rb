@@ -22,7 +22,7 @@ module Sources
 
     # POST /documents or /documents.json
     def create
-      @document = Current.account.documents.new(document_params)
+      @document = filing_account(:document).documents.new(document_params)
 
       respond_to do |format|
         if @document.save
@@ -76,9 +76,7 @@ module Sources
 
     # Only allow a list of trusted parameters through.
     def document_params
-      permitted = params.require(:document).permit(:account_id, :title, :file)
-      permitted = permitted.merge(account: Current.account) unless permitted.has_key?(:account_id)
-      permitted
+      params.require(:document).permit(:title, :file)
     end
   end
 end

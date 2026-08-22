@@ -22,7 +22,7 @@ module Sources
 
     # POST /websites or /websites.json
     def create
-      @website = Current.account.websites.new(website_params)
+      @website = filing_account(:website).websites.new(website_params)
 
       respond_to do |format|
         if @website.save
@@ -76,7 +76,7 @@ module Sources
 
     # Only allow a list of trusted parameters through.
     def website_params
-      params.require(:website).permit(:account_id, :data, :url)
+      params.require(:website).permit(:data, :url)
     end
   end
 end

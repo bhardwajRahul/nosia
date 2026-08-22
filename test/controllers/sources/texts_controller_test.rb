@@ -7,6 +7,9 @@ class Sources::TextsControllerTest < ActionDispatch::IntegrationTest
     @account.account_users.grant_to(@user)
     ActsAsTenant.current_tenant = @account
     post login_url, params: { email: @user.email, password: "testpassword123" }
+
+    @stranger = User.create!(email: "st-stranger@example.com", password: "testpassword123")
+    @foreign_account = Account.create!(name: "Foreign Account", owner: @stranger)
   end
 
   def teardown
@@ -19,5 +22,14 @@ class Sources::TextsControllerTest < ActionDispatch::IntegrationTest
     get new_sources_text_url
 
     assert_response :success
+  end
+
+  test "create cannot file a text under another user's account" do
+    post sources_texts_url, params: {
+      text: { data: "hostile corpus", account_id: @foreign_account.id }
+    }
+
+    assert_response :not_found
+    assert_empty Text.where(data: "hostile corpus")
   end
 end

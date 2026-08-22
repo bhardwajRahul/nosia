@@ -22,7 +22,7 @@ module Sources
 
     # POST /qnas or /qnas.json
     def create
-      @qna = Current.account.qnas.new(qna_params)
+      @qna = filing_account(:qna).qnas.new(qna_params)
 
       respond_to do |format|
         if @qna.save
@@ -76,7 +76,7 @@ module Sources
 
     # Only allow a list of trusted parameters through.
     def qna_params
-      params.require(:qna).permit(:account_id, :question, :answer)
+      params.require(:qna).permit(:question, :answer)
     end
   end
 end

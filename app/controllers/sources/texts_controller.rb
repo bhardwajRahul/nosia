@@ -22,7 +22,7 @@ module Sources
 
     # POST /texts or /texts.json
     def create
-      @text = Current.account.texts.new(text_params)
+      @text = filing_account(:text).texts.new(text_params)
 
       respond_to do |format|
         if @text.save
@@ -76,7 +76,7 @@ module Sources
 
     # Only allow a list of trusted parameters through.
     def text_params
-      params.require(:text).permit(:account_id, :data)
+      params.require(:text).permit(:data)
     end
   end
 end
