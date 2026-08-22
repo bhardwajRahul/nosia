@@ -1,8 +1,16 @@
 class ChatsController < ApplicationController
-  before_action :set_chat, only: [ :show, :destroy ]
+  before_action :set_chat, only: [ :show, :destroy, :stop ]
 
   def show
     @message = @chat.messages.build
+  end
+
+  # Clears the composer's busy state while a generation may still be streaming;
+  # the job's own ensure is idempotent. Full token-level cancellation is not
+  # implemented — this stops waiting, not tokens.
+  def stop
+    @chat.finish_generation!
+    redirect_to @chat
   end
 
   def new
