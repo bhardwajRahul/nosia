@@ -5,11 +5,11 @@ class ChatsController < ApplicationController
     @message = @chat.messages.build
   end
 
-  # Clears the composer's busy state while a generation may still be streaming;
-  # the job's own ensure is idempotent. Full token-level cancellation is not
-  # implemented — this stops waiting, not tokens.
+  # Signals the streaming worker to abort at the next chunk and unlocks the
+  # composer immediately. Chunks received before the flag lands are kept as
+  # the partial answer.
   def stop
-    @chat.finish_generation!
+    @chat.stop_generation!
     redirect_to @chat
   end
 

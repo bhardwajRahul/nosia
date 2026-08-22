@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_08_21_121000) do
+ActiveRecord::Schema[8.0].define(version: 2026_08_22_100000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "vector"
@@ -152,6 +152,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_08_21_121000) do
     t.integer "input_tokens_count", default: 0, null: false
     t.integer "output_tokens_count", default: 0, null: false
     t.string "thinking_phase"
+    t.datetime "stopped_at"
     t.index ["account_id"], name: "index_chats_on_account_id"
     t.index ["chat_id"], name: "index_chats_on_chat_id"
     t.index ["model_id"], name: "index_chats_on_model_id"

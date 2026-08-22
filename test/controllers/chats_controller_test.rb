@@ -32,17 +32,19 @@ class ChatsControllerTest < ActionDispatch::IntegrationTest
     @chat = Chat.last
   end
 
-  # The composer renders a stop button while generating; it used to point at a
-  # route with no action behind it (guaranteed 500). Stop clears the busy state
-  # so the user is never locked out of the composer.
-  test "stop clears the generating flag and redirects back to the chat" do
+  # The composer renders a stop button while generating. Stop raises the
+  # stopped_at flag the streaming loop checks between chunks and unlocks the
+  # composer; partial output received so far is kept.
+  test "stop flags cancellation, clears generating and redirects back to the chat" do
     chat = @account.chats.create!(user: @user, model: "test-model", provider: :openai, assume_model_exists: true)
     chat.start_generation!
 
     post stop_chat_url(chat)
 
     assert_redirected_to chat_path(chat)
-    assert_not chat.reload.generating
+    reloaded = chat.reload
+    assert_not reloaded.generating
+    assert_predicate reloaded, :generation_stopped?
   end
 
   # A TYPED url (Lexxy emits lexxy:insert-link only on paste) still becomes a

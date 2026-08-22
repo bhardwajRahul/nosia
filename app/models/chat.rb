@@ -1,4 +1,8 @@
 class Chat < ApplicationRecord
+  # Raised inside the streaming loop when the user hits stop; caught by the
+  # completion path, which keeps whatever already streamed.
+  class GenerationStopped < StandardError; end
+
   include ActionView::RecordIdentifier
   include AnswerRelevance
   include AugmentedPrompt
@@ -108,13 +112,25 @@ class Chat < ApplicationRecord
     first_question
   end
 
-  # Mark the chat as actively generating so the composer renders busy. No broadcast —
+  # Mark the chat as actively generating so the composer renders busy. Also
+  # clears a stale stop flag so the next turn isn't aborted by an old click.
+  # No broadcast —
   # the create response renders the busy form, and a fresh page load mid-generation
   # reads `generating` from the DB (reconnect-safe). Uses update_column to skip this
   # model's broadcasts_to after_update_commit auto-replace (a spurious chat-partial
   # BroadcastJob that is a no-op on the show page, which has no #chat_<id> target).
   def start_generation!
-    update_column(:generating, true)
+    update_columns(generating: true, stopped_at: nil)
+  end
+
+  # Called from the web process while the worker streams: raises the flag the
+  # streaming loop checks between chunks and unlocks the composer right away.
+  def stop_generation!
+    update_columns(stopped_at: Time.current, generating: false)
+  end
+
+  def generation_stopped?
+    stopped_at.present?
   end
 
   # Mark generation done and broadcast the composer unlock + a thinking_animation
