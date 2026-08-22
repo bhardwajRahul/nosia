@@ -1,18 +1,12 @@
-<% cache [ Current.account, "token-usage-summary" ] do %>
+<%# Counters move via update_counters without touching the account row, so
+    they must be part of the key or this fragment goes stale forever. %>
+<% cache [ Current.account, Current.account.input_tokens_count, Current.account.output_tokens_count, "token-usage-summary" ] do %>
   <%
     total_input  = token_totals[:input]
     total_output = token_totals[:output]
     total_tokens = total_input + total_output
 
-    # Headline environmental impact: per-model completion energy + embedding energy.
-    model_energy     = tokens_by_model.sum { |model_id, t| GreenIt.energy_kwh(tokens: t, model_id: model_id, kind: :completion)[:kwh] }
-    embedding_tokens = tokens_by_kind.fetch("embedding", 0)
-    embedding_energy = GreenIt.energy_kwh(tokens: embedding_tokens, model_id: nil, kind: :embedding)[:kwh]
-    total_kwh        = model_energy + embedding_energy
-    total_co2e       = GreenIt.co2e_g(kwh: total_kwh)
-    fallback_used    = tokens_by_model.any? { |model_id, t| GreenIt.energy_kwh(tokens: t, model_id: model_id, kind: :completion)[:fallback] }
-
-    max_model = tokens_by_model.first&.last.to_f
+    max_model = green_summary[:models].first&.dig(:tokens).to_f
     max_kind  = tokens_by_kind.values.max.to_f
   %>
   <section class="w-full max-w-4xl mx-auto space-y-4">
@@ -50,8 +44,8 @@
           <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-green-200 text-green-800 dark:bg-green-800 dark:text-green-200">⚡</span>
           Energy
         </div>
-        <p class="mt-2 text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100"><%= number_with_precision(total_kwh, precision: 6) %></p>
-        <p class="text-[11px] text-neutral-400 dark:text-neutral-500">kWh · <%= number_with_precision(total_co2e, precision: 2) %> gCO₂e</p>
+        <p class="mt-2 text-2xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100"><%= number_with_precision(green_summary[:kwh], precision: 6) %></p>
+        <p class="text-[11px] text-neutral-400 dark:text-neutral-500">kWh · <%= number_with_precision(green_summary[:co2e_g], precision: 2) %> gCO₂e</p>
       </div>
     </div>
 
@@ -61,8 +55,8 @@
         <div>
           <p class="text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 mb-3">Per model (top 5)</p>
           <ul class="space-y-3">
-            <% tokens_by_model.each do |model_id, t| %>
-              <% e = GreenIt.energy_kwh(tokens: t, model_id: model_id, kind: :completion) %>
+            <% green_summary[:models].each do |entry| %>
+              <% model_id, t, e = entry[:model_id], entry[:tokens], { kwh: entry[:kwh], fallback: entry[:fallback] } %>
               <li>
                 <div class="flex items-center justify-between text-xs mb-1.5">
                   <span class="font-medium text-neutral-700 dark:text-neutral-300 truncate"><%= model_id %></span>
@@ -74,7 +68,7 @@
                 <div class="text-[11px] text-neutral-400 dark:text-neutral-500 mt-1"><%= number_with_precision(e[:kwh], precision: 6) %> kWh<%= e[:fallback] ? "*" : "" %></div>
               </li>
             <% end %>
-            <% if tokens_by_model.empty? %>
+            <% if green_summary[:models].empty? %>
               <li class="text-sm text-neutral-400 dark:text-neutral-500">No usage yet.</li>
             <% end %>
           </ul>
@@ -135,7 +129,7 @@
         </div>
       <% end %>
 
-      <% if fallback_used %>
+      <% if green_summary[:fallback_used] %>
         <p class="text-[11px] text-neutral-400 dark:text-neutral-500">* estimated using a fallback energy coefficient (model not in the Comparia dataset).</p>
       <% end %>
     </div>
