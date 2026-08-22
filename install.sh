@@ -205,7 +205,7 @@ services:
     volumes:
       - postgres-db-data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     healthcheck:
       test: pg_isready -U \${POSTGRES_USER} -d \${POSTGRES_DB}
       interval: 2s
