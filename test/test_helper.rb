@@ -10,6 +10,22 @@ module ActiveSupport
     # Setup all fixtures in test/fixtures/*.yml for all tests in alphabetical order.
     fixtures :all
 
+    # Stubs UrlGuard DNS resolution so SSRF-guard tests never touch real DNS.
+    # Pair with unstub_url_resolver in teardown.
+    def stub_url_resolver(ips)
+      @original_url_resolve ||= UrlGuard.method(:resolve).unbind
+      addresses = Array(ips).map { |ip| IPAddr.new(ip) }
+      UrlGuard.define_singleton_method(:resolve) { |_host| addresses }
+      @stubbed_url_resolver = true
+    end
+
+    def unstub_url_resolver
+      return unless @stubbed_url_resolver
+
+      UrlGuard.define_singleton_method(:resolve, @original_url_resolve)
+      @stubbed_url_resolver = false
+    end
+
     # Stubs a Chat's ruby_llm pre-amble + streaming entry so complete_with_nosia
     # runs the real coalescing loop with canned chunks (no LLM, no embeddings).
     StreamChunk = Struct.new(:content)

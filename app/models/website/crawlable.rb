@@ -10,6 +10,15 @@ module Website::Crawlable
       mark_indexing_failed!
       return
     end
+
+    begin
+      UrlGuard.verify!(url)
+    rescue UrlGuard::Blocked => error
+      Rails.logger.warn("crawl_url! blocked url=#{url} reason=#{error.message}")
+      mark_indexing_failed!
+      return
+    end
+
     unless robots_allowed?
       mark_indexing_failed!
       return

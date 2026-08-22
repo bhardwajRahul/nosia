@@ -5,10 +5,12 @@ class IndexingFailureTest < ActiveSupport::TestCase
     @user = User.create!(email: "if@example.com", password: "testpassword123")
     @account = Account.create!(name: "IF Account", owner: @user)
     ActsAsTenant.current_tenant = @account
+    stub_url_resolver([ "93.184.216.34" ])
   end
 
   def teardown
     ActsAsTenant.current_tenant = nil
+    unstub_url_resolver
   end
 
   test "crawl_url! marks failed when robots disallows" do

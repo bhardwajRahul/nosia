@@ -9,6 +9,13 @@ class WebsiteTest < ActiveSupport::TestCase
     # Robots checking is covered in RobotsCheckableTest; keep these tests
     # focused on fetch/convert by allowing every URL.
     @website.define_singleton_method(:robots_allowed?) { true }
+    # Keep the SSRF guard off real DNS; its behavior is covered in UrlGuardTest.
+    stub_url_resolver([ "93.184.216.34" ])
+  end
+
+  def teardown
+    ActsAsTenant.current_tenant = nil
+    unstub_url_resolver
   end
 
   def stub_connection(status:, body: "")
