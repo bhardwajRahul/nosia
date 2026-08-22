@@ -1,11 +1,16 @@
 class ChatResponseJob < ApplicationJob
   queue_as :real_time
 
+  # Transient provider/network failures deserve another shot. Anything else
+  # propagates: Solid Queue marks the execution failed and Mission Control
+  # surfaces it, instead of a swallow-rescue hiding dead chats as successes.
+  retry_on Faraday::TimeoutError, Faraday::ConnectionFailed,
+    wait: :polynomially_longer, attempts: 3
+
   def perform(chat_id, content, user_message_id = nil)
     Rails.logger.info "=== ChatResponseJob started for chat ##{chat_id} ==="
     chat = Chat.find(chat_id)
     user_message = user_message_id ? Message.find(user_message_id) : nil
-    Rails.logger.info "User message: #{user_message&.id} - Content: #{content[0..100]}..."
 
     # Drop any blank assistant message left by a previous failed/empty generation.
     # ruby_llm would serialize it into this request's history and the provider
@@ -23,27 +28,15 @@ class ChatResponseJob < ApplicationJob
       []
     end
 
-    begin
-      if Rails.application.config.agent_skills.enabled
-        result = chat.complete_with_agent_skills(content, user_message: user_message, excluded_sources: excluded)
-      else
-        result = chat.complete_with_nosia(content, user_message: user_message, excluded_sources: excluded)
-      end
-      Rails.logger.info "=== ChatResponseJob completed. Result: #{result&.id} ==="
-    ensure
-      # Unlock the composer and clear any stuck thinking animation, whether the
-      # completion succeeded or raised. The controller set generating=true on submit.
-      chat.finish_generation!
+    if Rails.application.config.agent_skills.enabled
+      result = chat.complete_with_agent_skills(content, user_message: user_message, excluded_sources: excluded)
+    else
+      result = chat.complete_with_nosia(content, user_message: user_message, excluded_sources: excluded)
     end
-  rescue Faraday::TimeoutError => e
-    Rails.logger.error "=== ChatResponseJob ERROR: Timeout ==="
-    Rails.logger.error e.message
-  rescue Faraday::Error => e
-    Rails.logger.error "=== ChatResponseJob ERROR: Network error ==="
-    Rails.logger.error e.message
-  rescue => e
-    Rails.logger.error "=== ChatResponseJob ERROR: #{e.class} ==="
-    Rails.logger.error e.message
-    Rails.logger.error e.backtrace.join("\n")
+    Rails.logger.info "=== ChatResponseJob completed. Result: #{result&.id} ==="
+  ensure
+    # Unlock the composer and clear any stuck thinking animation, whether the
+    # completion succeeded or raised. The controller set generating=true on submit.
+    chat&.finish_generation!
   end
 end
