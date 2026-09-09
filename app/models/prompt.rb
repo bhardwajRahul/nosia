@@ -2,6 +2,9 @@ class Prompt < ApplicationRecord
   belongs_to :account, optional: true
   belongs_to :user, optional: true
 
+  # A blank system prompt would silently strip the model's instructions.
+  validates :content, presence: true
+
   def full_name
     if account.present?
       case name

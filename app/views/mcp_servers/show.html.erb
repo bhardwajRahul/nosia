@@ -203,28 +203,3 @@
   </div>
 </div>
 
-<script>
-document.addEventListener('turbo:load', () => {
-  // Tab switching logic
-  document.querySelectorAll('[data-action*="mcp-server#showTab"]').forEach(tab => {
-    tab.addEventListener('click', (e) => {
-      e.preventDefault()
-      const tabName = e.currentTarget.dataset.tab
-
-      // Update tab styles
-      document.querySelectorAll('.mcp-tab').forEach(t => {
-        t.classList.remove('active', 'n-tab-active')
-        t.classList.add('n-tab')
-      })
-      e.currentTarget.classList.add('active', 'n-tab-active')
-      e.currentTarget.classList.remove('n-tab')
-
-      // Show/hide tab panes
-      document.querySelectorAll('.tab-pane').forEach(pane => {
-        pane.classList.add('hidden')
-      })
-      document.getElementById(`${tabName}-tab`).classList.remove('hidden')
-    })
-  })
-})
-</script>

@@ -1,7 +1,7 @@
 require "test_helper"
 require "turbo/broadcastable/test_helper"
 
-class ChatResponseJobTest < ActiveSupport::TestCase
+class ChatResponseJobTest < ActiveJob::TestCase
   include Turbo::Broadcastable::TestHelper  # ActionCable::TestHelper + Turbo stream helpers
   include ActionView::RecordIdentifier      # for dom_id in the target assertion
 
@@ -154,10 +154,46 @@ class ChatResponseJobTest < ActiveSupport::TestCase
   end
 
   test "finish_generation! clears generating on successful completion" do
-    user_msg = @chat.messages.create!(role: :user, content: "ask")
+    user_msg = @chat.messages.create!(role: "user", content: "ask")
     @chat.start_generation!
     stub_completion
     ChatResponseJob.perform_now(@chat.id, user_msg.content, user_msg.id)
     assert_not @chat.reload.generating, "generating must be cleared after a successful completion"
+  end
+
+  # A swallowed failure used to mark the job successful in Solid Queue: no
+  # retry, nothing in Mission Control, and the user silently got no answer.
+  test "transient network errors are retried instead of swallowed" do
+    user_msg = @chat.messages.create!(role: "user", content: "ask")
+    @original_queue_adapter = ActiveJob::Base.queue_adapter
+    ActiveJob::Base.queue_adapter = :test
+
+    Chat.define_method(:complete_with_nosia) { |*| raise Faraday::TimeoutError, "boom" }
+    Chat.define_method(:complete_with_agent_skills) { |*| raise Faraday::TimeoutError, "boom" }
+    ChatResponseJob.perform_later(@chat.id, user_msg.content)
+
+    assert_enqueued_with(job: ChatResponseJob) do
+      perform_enqueued_jobs
+    end
+  ensure
+    remove_completion_stub
+    ActiveJob::Base.queue_adapter = @original_queue_adapter
+  end
+
+  test "unexpected errors bubble up so the job is marked failed" do
+    user_msg = @chat.messages.create!(role: "user", content: "ask")
+    @original_queue_adapter = ActiveJob::Base.queue_adapter
+    ActiveJob::Base.queue_adapter = :test
+
+    Chat.define_method(:complete_with_nosia) { |*| raise ArgumentError, "bug" }
+    Chat.define_method(:complete_with_agent_skills) { |*| raise ArgumentError, "bug" }
+    ChatResponseJob.perform_later(@chat.id, user_msg.content)
+
+    assert_raises(ArgumentError) { perform_enqueued_jobs }
+
+    assert_not @chat.reload.generating, "generating must be cleared even when the error propagates"
+  ensure
+    remove_completion_stub
+    ActiveJob::Base.queue_adapter = @original_queue_adapter
   end
 end

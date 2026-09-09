@@ -20,6 +20,23 @@
     </div>
   </div>
 
+  <% if flash[:created_api_token].present? %>
+    <div class="n-card n-main-border lg:col-span-2">
+      <div class="mt-6 ml-6 mr-4">
+        <h2 class="n-card-title">Your new API token</h2>
+        <p class="text-sm text-neutral-600 dark:text-neutral-300 mt-1">Copy it now — it won't be shown again.</p>
+      </div>
+      <div data-controller="clipboard" data-clipboard-success-content-value="Copied!" class="mb-6 ml-6 mr-4 grid grid-cols-5 gap-2 items-center">
+        <input type="text" readonly value="<%= flash[:created_api_token] %>" data-clipboard-target="source"
+          class="col-span-4 w-full truncate p-2 rounded-lg bg-neutral-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-neutral-700 dark:placeholder-neutral-400 dark:focus:ring-green-500">
+        <button type="button" data-action="clipboard#copy" data-clipboard-target="button" class="cursor-pointer n-btn-icon n-main-hover n-main-focus w-fit">
+          <%= inline_svg "svg/clipboard.svg", title:"Copy", alt:"Clipboard", class: "mx-auto w-6 h-6" %>
+          <span class="sr-only">Copy API token</span>
+        </button>
+      </div>
+    </div>
+  <% end %>
+
   <% @api_tokens.each do |api_token| %>
     <div class="n-card n-main-border lg:col-span-2">
       <div class="mt-6 ml-6 mr-4 flex gap-4 justify-between">
@@ -29,17 +46,7 @@
           <span class="sr-only">Delete API token</span>
         <% end %>
       </div>
-      <div data-controller="clipboard reveal" data-clipboard-success-content-value="Copied!" class="mb-6 ml-6 mr-4 grid grid-cols-5 place-center gap-2">
-        <button data-action="click->reveal#toggle" type="button" class="n-btn-icon n-main-hover n-main-focus w-fit">
-          <%= inline_svg "svg/eye.svg", title:"Show", alt:"Eye", class: "mx-auto w-6 h-6" %>
-          <span class="sr-only">Show API token</span>
-        </button>
-        <input type="text" value="<%= api_token.token %>" data-reveal-target="item" data-clipboard-target="source" class="hidden col-span-3 w-full truncate p-2 rounded-lg bg-neutral-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-neutral-700 dark:placeholder-neutral-400 dark:focus:ring-green-500">
-        <button type="button" data-action="clipboard#copy" data-clipboard-target="button" data-reveal-target="item" class="hidden cursor-pointer n-btn-icon n-main-hover n-main-focus w-fit">
-          <%= inline_svg "svg/clipboard.svg", title:"Copy", alt:"Copy", class: "mx-auto w-6 h-6" %>
-          <span class="sr-only">Copy to clipboard</span>
-        </button>
-      </div>
+      <p class="mb-6 ml-6 text-sm text-neutral-600 dark:text-neutral-400">For security, this token is shown only once, right after creation.</p>
     </div>
   <% end %>
 </div>

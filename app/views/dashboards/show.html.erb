@@ -37,31 +37,4 @@
     <%= render "chats/mcp_selector", chat: @chat %>
   <% end %>
 
-  <script>
-    // Copy selected MCP servers to the chat form before submission
-    document.addEventListener('turbo:load', () => {
-      const form = document.getElementById('chat-form')
-      if (!form) return
-
-      form.addEventListener('submit', (e) => {
-        // Get all checked MCP server checkboxes
-        const checkedBoxes = document.querySelectorAll('input[name="mcp_server_ids[]"]:checked')
-
-        // Clear existing hidden fields
-        const hiddenContainer = document.getElementById('mcp-server-hidden-fields')
-        if (hiddenContainer) {
-          hiddenContainer.innerHTML = ''
-
-          // Add hidden field for each selected server
-          checkedBoxes.forEach(checkbox => {
-            const input = document.createElement('input')
-            input.type = 'hidden'
-            input.name = 'mcp_server_ids[]'
-            input.value = checkbox.value
-            hiddenContainer.appendChild(input)
-          })
-        }
-      })
-    })
-  </script>
 </div>

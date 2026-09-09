@@ -64,18 +64,33 @@ module Chat::Completionable
     # Process the latest user message
     if block_given?
       # API/SSE path: yield raw chunks to the caller, no turbo broadcasts.
+      # (No stop support: the API has no stop endpoint.)
       self.complete { |chunk| yield chunk }
     else
       # Chat UI path: coalesce deltas and re-render the full buffer as markdown.
       message = nil
-      self.complete do |chunk|
-        message ||= self.messages.last
-        if chunk.content && message
-          stream_buffer << chunk.content
-          message.broadcast_streamed_content(stream_buffer.text) if stream_buffer.flush?
+      begin
+        self.complete do |chunk|
+          raise Chat::GenerationStopped if self.generation_stopped?
+
+          message ||= self.messages.last
+          if chunk.content && message
+            stream_buffer << chunk.content
+            message.broadcast_streamed_content(stream_buffer.text) if stream_buffer.flush?
+          end
         end
+      rescue Chat::GenerationStopped
+        Rails.logger.info "=== Generation stopped by user for chat ##{id} ==="
       end
+
       message&.broadcast_streamed_content(stream_buffer.text) if stream_buffer.any? # final flush
+
+      # A stop aborts before ruby_llm persists the final message; keep what
+      # already streamed by writing the buffer into the blank placeholder row.
+      if generation_stopped?
+        message&.update(content: stream_buffer.text) if stream_buffer.any? && message&.assistant?
+        return message
+      end
     end
 
     # Final assistant message is now fully persisted

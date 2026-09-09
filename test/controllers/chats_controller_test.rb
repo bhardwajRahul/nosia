@@ -28,6 +28,23 @@ class ChatsControllerTest < ActionDispatch::IntegrationTest
     message = Chat.last.messages.where(role: :user).last
     assert_equal [ w.id.to_s ], message.attached_website_ids
     assert_equal "hello", message.content.strip # HTML converted to markdown
+
+    @chat = Chat.last
+  end
+
+  # The composer renders a stop button while generating. Stop raises the
+  # stopped_at flag the streaming loop checks between chunks and unlocks the
+  # composer; partial output received so far is kept.
+  test "stop flags cancellation, clears generating and redirects back to the chat" do
+    chat = @account.chats.create!(user: @user, model: "test-model", provider: :openai, assume_model_exists: true)
+    chat.start_generation!
+
+    post stop_chat_url(chat)
+
+    assert_redirected_to chat_path(chat)
+    reloaded = chat.reload
+    assert_not reloaded.generating
+    assert_predicate reloaded, :generation_stopped?
   end
 
   # A TYPED url (Lexxy emits lexxy:insert-link only on paste) still becomes a

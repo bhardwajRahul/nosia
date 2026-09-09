@@ -34,6 +34,36 @@ class MessageTest < ActiveSupport::TestCase
     assert_equal [ d ], message.attached_documents
   end
 
+  # Attached-source ids arrive from request params. Resolution must be bounded
+  # by the chat's account so foreign source ids cannot pull another tenant's
+  # indexed content into this chat's context.
+  test "attached_websites and attached_documents ignore sources from other accounts" do
+    stranger = User.create!(email: "mt-stranger@example.com", password: "testpassword123")
+    foreign = Account.create!(name: "MT Foreign", owner: stranger)
+    foreign_website = foreign.websites.create!(url: "https://foreign.example")
+    foreign_document = foreign.documents.new
+    foreign_document.file.attach(io: StringIO.new("x"), filename: "f.pdf", content_type: "application/pdf")
+    foreign_document.save!
+
+    message = @chat.messages.create!(role: "user", content: "hi",
+      attached_website_ids: [ foreign_website.id ], attached_document_ids: [ foreign_document.id ])
+
+    assert_empty message.attached_websites
+    assert_empty message.attached_documents
+  end
+
+  test "attached_websites and attached_documents keep own sources among foreign ids" do
+    stranger = User.create!(email: "mt-stranger2@example.com", password: "testpassword123")
+    foreign = Account.create!(name: "MT Foreign 2", owner: stranger)
+    foreign_website = foreign.websites.create!(url: "https://foreign2.example")
+    own_website = @account.websites.create!(url: "https://own.example")
+
+    message = @chat.messages.create!(role: "user", content: "hi",
+      attached_website_ids: [ own_website.id, foreign_website.id ])
+
+    assert_equal [ own_website ], message.attached_websites
+  end
+
   test "attached ids default to empty arrays" do
     message = @chat.messages.create!(role: "user", content: "hi")
     assert_equal [], message.attached_website_ids

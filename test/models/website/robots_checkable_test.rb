@@ -6,6 +6,12 @@ class Website::RobotsCheckableTest < ActiveSupport::TestCase
     @account = Account.create!(name: "RC Account", owner: @user)
     ActsAsTenant.current_tenant = @account
     @website = @account.websites.create!(url: "https://example.com/page")
+    stub_url_resolver([ "93.184.216.34" ])
+  end
+
+  def teardown
+    ActsAsTenant.current_tenant = nil
+    unstub_url_resolver
   end
 
   def stub_robots(status: 200, body: "")

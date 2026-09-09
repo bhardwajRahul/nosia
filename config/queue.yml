@@ -3,6 +3,16 @@ default: &default
     - polling_interval: 1
       batch_size: 500
   workers:
+    # Chat responses must not queue behind crawls/embeddings (FIFO wildcard
+    # would starve them); dedicated workers keep the streaming path snappy.
+    - queues: "real_time"
+      threads: 5
+      polling_interval: 0.1
+      processes: <%= ENV.fetch("REAL_TIME_CONCURRENCY", 3) %>
+    - queues: "background"
+      threads: 2
+      polling_interval: 5
+      processes: <%= ENV.fetch("BACKGROUND_CONCURRENCY", 1) %>
     - queues: "*"
       threads: 3
       processes: <%= ENV.fetch("JOB_CONCURRENCY", 1) %>

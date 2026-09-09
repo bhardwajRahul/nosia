@@ -14,7 +14,9 @@ class ApiTokensController < ApplicationController
     )
 
     if @api_token.save
-      redirect_to api_tokens_path
+      # The plaintext token is shown exactly once, via the flash on the next
+      # page load; only its digest is stored.
+      redirect_to api_tokens_path, flash: { created_api_token: @api_token.plain_token }
     else
       redirect_to api_tokens_path, alert: "An error occured."
     end

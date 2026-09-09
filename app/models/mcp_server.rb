@@ -7,6 +7,8 @@ class McpServer < ApplicationRecord
   validates :name, presence: true, uniqueness: { scope: :account_id }
   validates :transport_type, presence: true, inclusion: { in: %w[stdio streamable sse local] }
   validates :endpoint, presence: true, if: -> { %w[streamable sse].include?(transport_type) }
+  validate :endpoint_must_be_publicly_routable, if: -> { %w[streamable sse].include?(transport_type) }
+  validate :stdio_transport_enabled_for_deployment, if: -> { transport_type == "stdio" }
 
   # Enums
   enum :status, {
@@ -35,6 +37,12 @@ class McpServer < ApplicationRecord
 
   def local?
     transport_type == "local"
+  end
+
+  # Spawning local processes from user-supplied commands is opt-in per
+  # deployment: multi-tenant hosts keep MCP_STDIO_ENABLED unset.
+  def self.stdio_enabled?
+    ActiveModel::Type::Boolean.new.cast(ENV["MCP_STDIO_ENABLED"])
   end
 
   # Get MCP client instance
@@ -156,6 +164,19 @@ class McpServer < ApplicationRecord
 
   def set_default_status
     self.status ||= "disconnected"
+  end
+
+  def endpoint_must_be_publicly_routable
+    return if endpoint.blank?
+
+    candidate = endpoint.match?(%r{\Ahttps?://}i) ? endpoint : "https://#{endpoint}"
+    errors.add(:endpoint, "must point to a publicly routable host") unless UrlGuard.safe?(candidate)
+  end
+
+  def stdio_transport_enabled_for_deployment
+    unless self.class.stdio_enabled?
+      errors.add(:transport_type, "stdio requires MCP_STDIO_ENABLED on this deployment")
+    end
   end
 
   def build_client_config

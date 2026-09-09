@@ -182,11 +182,11 @@ class Message < ApplicationRecord
   end
 
   def attached_websites
-    Website.where(id: attached_website_ids)
+    chat.account.websites.where(id: attached_website_ids)
   end
 
   def attached_documents
-    Document.where(id: attached_document_ids)
+    chat.account.documents.where(id: attached_document_ids)
   end
 
   # Lexxy emits lexxy:insert-link only when a URL is *pasted*, so a typed URL

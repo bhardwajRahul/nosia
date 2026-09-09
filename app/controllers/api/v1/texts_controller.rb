@@ -22,7 +22,7 @@ module Api
       private
 
       def text_params
-        params.permit(:data, :user)
+        params.permit(:data)
       end
     end
   end

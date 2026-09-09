@@ -64,4 +64,30 @@ class Account < ApplicationRecord
     prompt ||= prompts.find_by(name: "system_prompt", user_id: nil)
     prompt.present? ? prompt.content : Prompts.system_prompt
   end
+
+  # Environmental impact of this account's token usage: per-model completion
+  # energy (top 5) plus embedding energy, with the Comparia fallback flag so
+  # the UI can mark estimates.
+  def green_it_summary
+    by_model = token_usages.where.not(model_id: nil)
+      .group(:model_id).sum("(input_tokens + output_tokens)")
+
+    models = by_model.sort_by { |_, tokens| -tokens }.first(5).map do |model_id, tokens|
+      impact = GreenIt.energy_kwh(tokens: tokens, model_id: model_id, kind: :completion)
+      { model_id:, tokens:, kwh: impact[:kwh], fallback: impact[:fallback] }
+    end
+
+    embedding_tokens = token_usages.where(kind: :embedding)
+      .sum("(input_tokens + output_tokens)")
+    embedding_energy = GreenIt.energy_kwh(tokens: embedding_tokens, model_id: nil, kind: :embedding)
+
+    kwh = models.sum { |entry| entry[:kwh] } + embedding_energy[:kwh]
+
+    {
+      models:,
+      kwh:,
+      co2e_g: GreenIt.co2e_g(kwh:),
+      fallback_used: models.any? { |entry| entry[:fallback] }
+    }
+  end
 end

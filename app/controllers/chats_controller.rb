@@ -1,8 +1,16 @@
 class ChatsController < ApplicationController
-  before_action :set_chat, only: [ :show, :destroy ]
+  before_action :set_chat, only: [ :show, :destroy, :stop ]
 
   def show
     @message = @chat.messages.build
+  end
+
+  # Signals the streaming worker to abort at the next chunk and unlocks the
+  # composer immediately. Chunks received before the flag lands are kept as
+  # the partial answer.
+  def stop
+    @chat.stop_generation!
+    redirect_to @chat
   end
 
   def new

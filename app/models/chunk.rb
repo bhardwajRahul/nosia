@@ -4,6 +4,13 @@ class Chunk < ApplicationRecord
   belongs_to :account
   belongs_to :chunkable, polymorphic: true
 
+  # Single source of truth for the embedding width the deployment embeds at;
+  # the chunks.embedding column is migrated to match (see
+  # AlignChunksEmbeddingDimensions). Keep in sync with install.sh's default.
+  def self.embedding_dimensions
+    ENV.fetch("EMBEDDING_DIMENSIONS", "768").to_i
+  end
+
   def augmented_context
     previous = previous_chunks(2)
     following = next_chunks(2)

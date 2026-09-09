@@ -21,8 +21,8 @@
   </h2>
   <% if @website.data.present? %>
     <div class="n-form-content"><%= sanitize @website.to_html,
-          tags: %w[p h1 h2 h3 h4 h5 h6 ul ol li a strong em code pre blockquote table thead tbody tr th td br hr del ins sub sup mark dl dt dd kbd],
-          attributes: %w[href title class id aria-hidden colspan rowspan] %></div>
+          tags: ApplicationHelper::SANITIZED_MARKDOWN_TAGS,
+          attributes: ApplicationHelper::SANITIZED_MARKDOWN_ATTRIBUTES %></div>
   <% else %>
     <p class="n-form-content">No content yet.</p>
   <% end %>

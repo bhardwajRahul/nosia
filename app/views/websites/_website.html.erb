@@ -1,4 +1,4 @@
 <div id="<%= dom_id website %>">
   <h1 class="n-title"><%= website.title %></h1>
-  <%== website.data %>
+  <%== sanitized_markdown(website.to_html) %>
 </div>

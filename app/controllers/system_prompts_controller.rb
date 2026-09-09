@@ -4,7 +4,6 @@ class SystemPromptsController < ApplicationController
   before_action :set_system_prompt, only: %i[show edit update destroy]
 
   def index
-    Current.user.accounts.each { |account| account.create_default_system_prompt!(user: nil) }
     @system_prompts = Prompt.where(account: Current.user.accounts, name: "system_prompt").order(:account_id)
   end
 
@@ -18,7 +17,7 @@ class SystemPromptsController < ApplicationController
     if @system_prompt.update(system_prompt_params)
       redirect_to system_prompt_path(@system_prompt), notice: "System prompt was successfully updated."
     else
-      render :show
+      render :show, status: :unprocessable_entity
     end
   end
 
@@ -34,6 +33,6 @@ class SystemPromptsController < ApplicationController
   end
 
   def system_prompt_params
-    params.require(:prompt).permit(:account_id, :content)
+    params.require(:prompt).permit(:content)
   end
 end

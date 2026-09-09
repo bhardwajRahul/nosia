@@ -15,7 +15,7 @@ class AgentSkillsController < ApplicationController
     if @agent_skill.save
       redirect_to agent_skills_path, notice: "Agent skill created successfully"
     else
-      render :new
+      render :new, status: :unprocessable_entity
     end
   end
 
@@ -29,7 +29,7 @@ class AgentSkillsController < ApplicationController
     if @agent_skill.update(agent_skill_params)
       redirect_to agent_skills_path, notice: "Agent skill updated"
     else
-      render :edit
+      render :edit, status: :unprocessable_entity
     end
   end
 
